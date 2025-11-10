@@ -6,7 +6,7 @@ from openai import OpenAI
 
 TZ = ZoneInfo("Europe/Warsaw")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-# Глобальную настройку openai.api_key = ... убираем
+PROMPT_GPT = os.getenv("PROMPT_GPT")
 
 def generate_daily_report_with_gpt(sheet):
     """
@@ -47,12 +47,7 @@ def generate_daily_report_with_gpt(sheet):
             duration = str(r.get("Duration", "")).strip()
             table_text += f"{date_val}\t{activity}\t{duration}\n"
 
-        prompt = (
-            "Проанализируй мои активности из таблицы ниже и скажи, "
-            "насколько эффективно я работаю над целью зарабатывать на своем бизнесе 15К долларов (сумму в ответе не указывай). "
-            "Дай краткий и понятный ответ. Оперируй цифрами\n\n"
-            f"{table_text}"
-        )
+        prompt = f"{PROMPT_GPT}\n\n{table_text}"
 
         # --- Используем локальный клиент 'client' ---
         response = client.chat.completions.create(
