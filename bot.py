@@ -227,7 +227,7 @@ def schedule_daily_report():
                 logging.error(f"❌ Ошибка при отправке ежедневного репорта: {e}")
 
         scheduler = BackgroundScheduler(timezone="Europe/Warsaw")
-        scheduler.add_job(send_fake_report, 'cron', hour=14, minute=20)
+        scheduler.add_job(send_fake_report, 'cron', hour=22, minute=15)
         scheduler.start()
         logging.info("✅ Планировщик ежедневного репорта запущен")
     except Exception as e:
