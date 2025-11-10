@@ -11,8 +11,9 @@ import nest_asyncio
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import json
-from features.report import generate_daily_report_with_gpt_async
+from features.report import generate_daily_report_with_gpt
 import traceback
+from apscheduler.schedulers.background import BackgroundScheduler
 
 
 # -----------------------------
@@ -143,6 +144,7 @@ if not TOKEN:
 # -----------------------------
 # Google Sheets setup
 # -----------------------------
+
 try:
     logging.info("📄 Setting up Google Sheets connection...")
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -150,6 +152,19 @@ try:
     creds_json_str = os.getenv("GOOGLE_CREDENTIALS_JSON")
     if not creds_json_str:
         raise ValueError("⚠️ Не найдена переменная окружения GOOGLE_CREDENTIALS_JSON")
+"""
+try:
+    logging.info("📄 Setting up Google Sheets connection...")
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+    creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open("TelegramMessages").sheet1
+    logging.info("✅ Connected to Google Sheets successfully")
+except Exception as e:
+    logging.error(f"❌ Failed to connect Google Sheets: {e}")
+    sheet = None
+
 
     # Парсим JSON
     creds_dict = json.loads(creds_json_str)
@@ -162,6 +177,11 @@ try:
 except Exception as e:
     logging.error(f"❌ Failed to connect Google Sheets: {e}")
     sheet = None
+"""
+
+    
+    
+    
 
 # -----------------------------
 # Telegram bot setup
@@ -175,6 +195,51 @@ except Exception as e:
     logging.error(f"❌ Telegram bot init error: {e}")
 
 # -----------------------------
+# Планировщик ежедневного репорта
+# -----------------------------
+def schedule_daily_report():
+    try:
+        def send_fake_report():
+            try:
+                fake_update = {
+                    "update_id": 999999999,
+                    "message": {
+                        "message_id": 1,
+                        "from": {
+                            "id": 884672440,
+                            "is_bot": False,
+                            "first_name": "Eugene",
+                            "username": "JskSrm",
+                            "language_code": "en"
+                        },
+                        "chat": {
+                            "id": 884672440,
+                            "first_name": "Eugene",
+                            "username": "JskSrm",
+                            "type": "private"
+                        },
+                        "date": int(datetime.now().timestamp()),
+                        "text": "репорт"
+                    }
+                }
+
+                update = Update.de_json(fake_update, app_telegram.bot)
+                asyncio.run(app_telegram.process_update(update))
+                logging.info("✅ Ежедневный репорт отправлен")
+            except Exception as e:
+                logging.error(f"❌ Ошибка при отправке ежедневного репорта: {e}")
+
+        scheduler = BackgroundScheduler(timezone="Europe/Warsaw")
+        scheduler.add_job(send_fake_report, 'cron', hour=21, minute=59)
+        scheduler.start()
+        logging.info("✅ Планировщик ежедневного репорта запущен")
+    except Exception as e:
+        logging.error(f"❌ Ошибка при инициализации планировщика: {e}")
+
+# Запуск планировщика
+schedule_daily_report()
+
+# -----------------------------
 # Handlers
 # -----------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -182,10 +247,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот, и я умею записывать твои активности.")
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global sheet
-    if not sheet:
-        logging.error("❌ Message skipped: Google Sheets not connected.")
-        await update.message.reply_text("⚠️ Ошибка подключения к Google Sheets. Проверьте 'credentials.json' и доступ.")
+    global creds # Нам нужны глобальные creds, которые мы загрузили
+    
+    if not creds:
+        logging.error("❌ Message skipped: Google Credentials not loaded.")
+        await update.message.reply_text("⚠️ Ошибка подключения к Google Sheets. Учетные данные не загружены.")
         return
 
     raw_text = update.message.text.strip()
@@ -194,23 +260,30 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     # --- Отчёт за день с анализом GPT ---
-    if text.lower() in ["отчет", "отчёт", "report"]:
-        error_text = ""  # инициализируем заранее
-
+    if text.lower() in ["репорт", "Репорт", "report"]:
+        error_text = ""
         try:
+            # --- СОЗДАЁМ ЛОКАЛЬНЫЙ SHEET ЗДЕСЬ ---
+            client = gspread.authorize(creds)
+            sheet = client.open("TelegramMessages").sheet1
+            
             # Асинхронно вызываем GPT
-            analysis = await generate_daily_report_with_gpt_async(sheet)
+            analysis = generate_daily_report_with_gpt(sheet)
             await update.message.reply_text(analysis)
 
         except Exception as e:
             error_text = f"❌ Ошибка при генерации отчёта:\n\n{str(e)}\n\n{traceback.format_exc()}"
-        try:
-            # Отправляем в Telegram максимум 4000 символов
-            await update.message.reply_text(error_text[:4000])
-        except Exception as inner_e:
-            print("Ошибка при отправке лога в Telegram:", inner_e)
+            try:
+                await update.message.reply_text(error_text[:4000])
+            except Exception as inner_e:
+                print("Ошибка при отправке лога в Telegram:", inner_e)
+        return
 
     try:
+        # --- СОЗДАЁМ ЛОКАЛЬНЫЙ SHEET ЗДЕСЬ (ДЛЯ ВСЕХ ОСТАЛЬНЫХ КОМАНД) ---
+        client = gspread.authorize(creds)
+        sheet = client.open("TelegramMessages").sheet1
+
         # Проверяем незакрытую активность
         records = sheet.get_all_records()
         open_record = None
@@ -283,7 +356,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"🏁 Started '{activity}' at {start_dt.strftime('%H:%M')}")
 
     except Exception as e:
-        logging.error(f"❌ Error in echo handler: {e}")
+        logging.error(f"❌ Error in echo handler: {e}\n{traceback.format_exc()}")
         await update.message.reply_text("⚠️ Произошла ошибка, проверьте логи.")
 
 # Регистрируем обработчики

@@ -1,64 +1,79 @@
-import openai
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import os
-
-
-
-
-print("OpenAI version:", openai.__version__)
-print("OpenAI file:", openai.__file__)
-
-# ⚡ Ваш API ключ
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Важно: импортируем сам класс OpenAI
+from openai import OpenAI
 
 TZ = ZoneInfo("Europe/Warsaw")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Глобальную настройку openai.api_key = ... убираем
 
-async def generate_daily_report_with_gpt_async(sheet=None):
+def generate_daily_report_with_gpt(sheet):
     """
-    Отправляем тестовое сообщение в GPT и возвращаем ответ.
-    В ответе сразу видно, какой запрос улетает в GPT.
-    sheet нужен для совместимости с bot.py.
+    Отправляет все данные из Google Sheets в GPT для анализа.
+    Возвращает текст с сегодняшними активностями и оценкой эффективности.
     """
     try:
-        now_str = datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
+        # --- Создаём локальный клиент ---
+        # Это ключ к исправлению.
+        # Клиент создается "свежий" для каждого запроса.
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        records = sheet.get_all_records()
+        if not records:
+            return "📭 Таблица пуста, нет данных для анализа."
 
-        # --- Текст запроса для GPT ---
-        prompt = "Привет, ChatGPT! Это тестовое сообщение для дебага отчёта."
+        today_str = datetime.now(TZ).strftime("%Y-%m-%d")
 
-        # --- Отправляем запрос к GPT ---
-        print("🚀 Отправляем запрос в GPT...")
-        print(f"🔹 Время: {now_str}")
-        print(f"🔹 Текст: {prompt}")
+        # --- Составляем текст сегодняшних активностей ---
+        today_activities = "📅 Активности на сегодня:\n"
+        has_today = False
+        for r in records:
+            date_val = str(r.get("Date Activity", "")).strip()
+            activity = str(r.get("Activity", "")).strip()
+            duration = str(r.get("Duration", "")).strip()
+            if date_val == today_str:
+                has_today = True
+                today_activities += f"{activity} — {duration}\n"
 
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",  # можно заменить на gpt-3.5-turbo, если хочешь
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=200,
+        if not has_today:
+            today_activities += "Нет активностей за сегодня.\n"
+
+        # --- Формируем текст для GPT (анализ всей таблицы) ---
+        table_text = "Date Activity\tActivity\tDuration\n"
+        for r in records:
+            date_val = str(r.get("Date Activity", "")).strip()
+            activity = str(r.get("Activity", "")).strip()
+            duration = str(r.get("Duration", "")).strip()
+            table_text += f"{date_val}\t{activity}\t{duration}\n"
+
+        prompt = (
+            "Проанализируй мои активности из таблицы ниже и скажи, "
+            "насколько эффективно я иду к цели зарабатывать 15К долларов на своем бизнесе. "
+            "Дай краткий и понятный ответ. Оперируй цифрами\n\n"
+            f"{table_text}"
         )
 
-        # --- Обработка ответа ---
+        # --- Используем локальный клиент 'client' ---
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=500
+        )
+
         answer = response.choices[0].message.content.strip()
 
+        # --- Итоговое сообщение ---
         report_text = (
-            f"📋 DEBUG INFO:\n"
-            f"Текущее время: {now_str}\n"
-            f"Текст запроса в GPT: '{prompt}'\n\n"
-            f"✅ Ответ GPT:\n{answer}"
+            f"{today_activities}\n"
+            f"📋 Обзор от GPT:\n{answer}"
         )
 
         return report_text
 
     except Exception as e:
+        # Добавим traceback для лучшей диагностики, если ошибка останется
         import traceback
-        tb = traceback.format_exc()
-
-        error_text = (
-            f"⚠️ Ошибка при обращении к GPT:\n{e}\n\n"
-            f"📜 Traceback:\n{tb}"
-        )
-
-        # Печатаем в консоль и возвращаем в Telegram
-        print(error_text)
-        return error_text[:4000]  # чтобы Telegram не обрезал сообщение
+        logging.error(f"⚠️ Ошибка при обращении к GPT: {e}\n{traceback.format_exc()}")
+        return f"⚠️ Ошибка при обращении к GPT: {e}"

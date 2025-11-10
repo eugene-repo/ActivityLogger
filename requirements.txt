@@ -7,3 +7,4 @@ openai==2.7.1
 httpx==0.28.1
 gunicorn==21.2.0
 nest_asyncio==1.6.0
+apscheduler
