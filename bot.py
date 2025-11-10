@@ -144,15 +144,8 @@ if not TOKEN:
 # -----------------------------
 # Google Sheets setup
 # -----------------------------
-
-try:
-    logging.info("📄 Setting up Google Sheets connection...")
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    # Загружаем credentials из переменной окружения
-    creds_json_str = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    if not creds_json_str:
-        raise ValueError("⚠️ Не найдена переменная окружения GOOGLE_CREDENTIALS_JSON")
 """
+# --- Вариант через локальный файл (закомментирован) ---
 try:
     logging.info("📄 Setting up Google Sheets connection...")
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -164,6 +157,14 @@ try:
 except Exception as e:
     logging.error(f"❌ Failed to connect Google Sheets: {e}")
     sheet = None
+"""
+try:
+    logging.info("📄 Setting up Google Sheets connection...")
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    # Загружаем credentials из переменной окружения
+    creds_json_str = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if not creds_json_str:
+        raise ValueError("⚠️ Не найдена переменная окружения GOOGLE_CREDENTIALS_JSON")
 
 
     # Парсим JSON
@@ -177,10 +178,6 @@ except Exception as e:
 except Exception as e:
     logging.error(f"❌ Failed to connect Google Sheets: {e}")
     sheet = None
-"""
-
-    
-    
     
 
 # -----------------------------
@@ -230,7 +227,7 @@ def schedule_daily_report():
                 logging.error(f"❌ Ошибка при отправке ежедневного репорта: {e}")
 
         scheduler = BackgroundScheduler(timezone="Europe/Warsaw")
-        scheduler.add_job(send_fake_report, 'cron', hour=21, minute=59)
+        scheduler.add_job(send_fake_report, 'cron', hour=14, minute=20)
         scheduler.start()
         logging.info("✅ Планировщик ежедневного репорта запущен")
     except Exception as e:
