@@ -135,7 +135,10 @@ logging.info("✅ Flask app initialized")
 # -----------------------------
 # Telegram token
 # -----------------------------
-TOKEN = "8271042348:AAFmN78KUoKgWpQ2emcmt3H5J-Bq7uuzKkg"
+TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+if not TOKEN:
+    raise ValueError("⚠️ TELEGRAM_BOT_TOKEN is not set in environment variables")
 
 # -----------------------------
 # Google Sheets setup
