@@ -1,4 +1,6 @@
 import os
+import logging
+import traceback
 from datetime import datetime
 from zoneinfo import ZoneInfo
 # Важно: импортируем сам класс OpenAI
@@ -49,13 +51,23 @@ def generate_daily_report_with_gpt(sheet):
 
         prompt = f"{PROMPT_GPT}\n\n{table_text}"
         
+        print("🚀 Отправка запроса в GPT...")
+        print(f"📤 Model: gpt-5 | Prompt (первые 1000 символов):\n{prompt[:1000]}")        
+        
         # --- Используем локальный клиент 'client' ---
-        response = client.chat.completions.create(
-            model="gpt-5",
-            messages=[{"role": "user", "content": prompt}],
-        )
+        try:
+            response = client.chat.completions.create(
+                model="gpt-5",
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except Exception as inner_e:
+            print("❌ Ошибка при вызове GPT (внутренний try):")
+            print(traceback.format_exc())
+            raise inner_e
         print("✅ ОТВЕТ ОТ GPT:")
         print(response)
+
+        
         answer = response.choices[0].message.content.strip()
               
         # --- Итоговое сообщение ---
