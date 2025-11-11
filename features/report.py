@@ -70,7 +70,8 @@ def generate_daily_report_with_gpt(sheet):
             temperature=0.75,
             max_completion_tokens=3000
         )
-
+        print("✅ ОТВЕТ ОТ GPT:")
+        print(response)
         answer = response.choices[0].message.content.strip()
               
         # --- Итоговое сообщение ---
