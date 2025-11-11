@@ -53,8 +53,8 @@ def generate_daily_report_with_gpt(sheet):
         response = client.chat.completions.create(
             model="gpt-5",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=500
+            temperature=0.7,
+            max_completion_tokens=2000
         )
 
         answer = response.choices[0].message.content.strip()
