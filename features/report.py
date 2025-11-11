@@ -58,12 +58,13 @@ def generate_daily_report_with_gpt(sheet):
             model="gpt-5",
             messages=[{"role": "user", "content": prompt}],
         )
+
+        answer = response.choices[0].message.content.strip()
         
         # 🔹 ЛОГИРУЕМ ОТВЕТ
         print("✅ ОТВЕТ ОТ GPT:")
         print(response)
-        answer = response.choices[0].message.content.strip()
-
+        
         # --- Итоговое сообщение ---
         report_text = (
             f"{today_activities}\n"
