@@ -51,15 +51,17 @@ def generate_daily_report_with_gpt(sheet):
         
         # --- Используем локальный клиент 'client' ---
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_completion_tokens=2000
         )
 
         answer = response.choices[0].message.content.strip()
         
         # 🔹 ЛОГИРУЕМ ОТВЕТ
         print("✅ ОТВЕТ ОТ GPT:")
-        print(answer)
+        print(response)
         
         # --- Итоговое сообщение ---
         report_text = (
