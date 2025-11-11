@@ -59,7 +59,7 @@ def generate_daily_report_with_gpt(sheet):
         
         # 🔹 ЛОГИРУЕМ ОТВЕТ
         print("✅ ОТВЕТ ОТ GPT:")
-        print(response)
+        print(answer)
         
         # --- Итоговое сообщение ---
         report_text = (
