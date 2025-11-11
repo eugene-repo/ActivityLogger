@@ -51,7 +51,7 @@ def generate_daily_report_with_gpt(sheet):
         
         # --- Используем локальный клиент 'client' ---
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5",
             messages=[{"role": "user", "content": prompt}, {
             "role": "system",
             "content": (
