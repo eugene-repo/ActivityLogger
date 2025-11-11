@@ -48,15 +48,20 @@ def generate_daily_report_with_gpt(sheet):
             table_text += f"{date_val}\t{activity}\t{duration}\n"
 
         prompt = f"{PROMPT_GPT}\n\n{table_text}"
+        
+        # 🔹 ЛОГИРУЕМ ОТПРАВКУ
+        print("🚀 ОТПРАВКА В GPT:")
+        print(prompt[:2000])  # выводим первые 2000 символов, чтобы не засорять логи
 
         # --- Используем локальный клиент 'client' ---
         response = client.chat.completions.create(
             model="gpt-5",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_completion_tokens=2000
         )
-
+        
+        # 🔹 ЛОГИРУЕМ ОТВЕТ
+        print("✅ ОТВЕТ ОТ GPT:")
+        print(response)
         answer = response.choices[0].message.content.strip()
 
         # --- Итоговое сообщение ---
