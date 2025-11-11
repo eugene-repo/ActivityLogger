@@ -51,10 +51,10 @@ def generate_daily_report_with_gpt(sheet):
 
         # --- Используем локальный клиент 'client' ---
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=3000
+            temperature=0.3,
+            max_tokens=500
         )
 
         answer = response.choices[0].message.content.strip()
