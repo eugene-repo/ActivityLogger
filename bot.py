@@ -266,7 +266,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Асинхронно вызываем GPT
             analysis = generate_daily_report_with_gpt(sheet)
-            await update.message.reply_text(analysis)
+            await update.message.reply_text(analysis, parse_mode="Markdown")
 
         except Exception as e:
             error_text = f"❌ Ошибка при генерации отчёта:\n\n{str(e)}\n\n{traceback.format_exc()}"
