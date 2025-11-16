@@ -254,7 +254,15 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     raw_text = update.message.text.strip()
     text = raw_text.lower().strip()
     logging.info(f"📩 Received message: '{text}'")
-
+    
+    # ✅ Всегда создаём sheet здесь
+    try:
+        client = gspread.authorize(creds)
+        sheet = client.open("TelegramMessages").sheet1
+    except Exception as e:
+        logging.error(f"❌ Google Sheets error: {e}")
+        await update.message.reply_text("⚠️ Ошибка подключения к Google Sheets.")
+        return
     # ---------------------------------------------
     # 1) Command: "Activity started X minutes ago"
     # ---------------------------------------------
