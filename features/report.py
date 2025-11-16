@@ -55,9 +55,7 @@ def generate_daily_report_with_gpt(sheet):
         # --- Используем локальный клиент 'client' ---
         try:
             response = client.chat.completions.create(
-                model="gpt-4o",
-                temperature=0.78,              # немного теплее, чтобы текст звучал естественно и живо
-                max_completion_tokens=3500,    # хватает для больших разборов (до 4000 символов)
+                model="gpt-5",
                 messages=[
                     {
                         "role": "system",
