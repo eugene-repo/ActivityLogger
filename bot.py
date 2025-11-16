@@ -255,6 +255,38 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = raw_text.lower().strip()
     logging.info(f"📩 Received message: '{text}'")
 
+    # ---------------------------------------------
+    # 1) Command: "Activity started X minutes ago"
+    # ---------------------------------------------
+    import re
+    match = re.match(r"(.+)\s+started\s+(\d+)\s+minutes ago", raw_text, re.IGNORECASE)
+
+    if match:
+        activity_name = match.group(1).strip().capitalize()
+        minutes_ago = int(match.group(2))
+
+        now = get_local_now()
+        start_dt = now - timedelta(minutes=minutes_ago)
+
+        try:
+            sheet.append_row([
+                start_dt.strftime("%Y-%m-%d"),
+                activity_name,
+                start_dt.strftime("%H:%M:%S"),
+                "",
+                ""
+            ])
+
+            await update.message.reply_text(
+                f"🏁 Started '{activity_name}' {minutes_ago} min ago "
+                f"({start_dt.strftime('%H:%M')})"
+            )
+
+        except Exception as e:
+            logging.error(f"❌ Error writing 'started X minutes ago': {e}")
+            await update.message.reply_text("⚠️ Ошибка записи в таблицу.")
+
+        return   # <-- Важно! Дальше обработка не идёт
 
     # --- Отчёт за день с анализом GPT ---
     if text.lower() in ["репорт", "Репорт", "report"]:
