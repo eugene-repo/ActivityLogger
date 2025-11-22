@@ -432,10 +432,11 @@ def webhook():
         logging.info("📨 Webhook POST received from Telegram")
          # 👇 добавляем вывод всего тела запроса
         logging.info(f"📦 Full Telegram update:\n{json.dumps(data, indent=2, ensure_ascii=False)}")
-        update = Update.de_json(data, app_telegram.bot)
-        asyncio.run(app_telegram.process_update(update))
-        logging.info("✅ Telegram update processed successfully")
-        return "ok"
+        # 1. Сразу отвечаем Telegram (иначе будут retry)
+        logging.info("⚡ Fast ACK to Telegram")
+        # 2. Обрабатываем update асинхронно в фоновом таске
+        asyncio.get_event_loop().create_task(app_telegram.process_update(Update.de_json(data, app_telegram.bot)))
+        return "ok", 200
     except Exception as e:
         logging.error(f"❌ Webhook processing error: {e}")
         return "error", 500
