@@ -185,9 +185,6 @@ except Exception as e:
 # -----------------------------
 try:
     app_telegram = ApplicationBuilder().token(TOKEN).build()
-    loop = asyncio.get_event_loop()
-    loop.create_task(app_telegram.initialize())
-    loop.create_task(app_telegram.start())
     logging.info("✅ Telegram bot created (ApplicationBuilder)")
     asyncio.run(app_telegram.initialize())
     logging.info("✅ Telegram Application initialized successfully")
@@ -317,6 +314,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- Отчёт за день с анализом GPT ---
     if text.lower() in ["репорт", "Репорт", "report"]:
+        await update.message.reply_text("⏳ Генерирую отчёт, это может занять время...")
         error_text = ""
         try:
             # --- СОЗДАЁМ ЛОКАЛЬНЫЙ SHEET ЗДЕСЬ ---
@@ -433,17 +431,16 @@ def webhook():
     try:
         data = request.get_json(force=True)
         logging.info("📨 Webhook POST received from Telegram")
-         # 👇 добавляем вывод всего тела запроса
         logging.info(f"📦 Full Telegram update:\n{json.dumps(data, indent=2, ensure_ascii=False)}")
-        # 1. Сразу отвечаем Telegram (иначе будут retry)
-        logging.info("⚡ Fast ACK to Telegram")
-        # 2. Обрабатываем update асинхронно в фоновом таске
-        loop = asyncio.get_event_loop()
-        asyncio.run_coroutine_threadsafe(
-            app_telegram.process_update(Update.de_json(data, app_telegram.bot)),
-        loop
-        )
-        return "ok", 200
+        update = Update.de_json(data, app_telegram.bot)
+
+        import threading
+        threading.Thread(
+            target=lambda: asyncio.run(app_telegram.process_update(update)),
+            daemon=True
+        ).start()
+
+        return "ok"
     except Exception as e:
         logging.error(f"❌ Webhook processing error: {e}")
         return "error", 500
