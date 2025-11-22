@@ -61,6 +61,7 @@ def generate_daily_report_with_gpt(sheet):
                 ],
             )
         except Exception as inner_e:
+            import traceback
             print("❌ Ошибка при вызове GPT (внутренний try):")
             print(traceback.format_exc())
             raise inner_e
