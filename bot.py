@@ -185,6 +185,9 @@ except Exception as e:
 # -----------------------------
 try:
     app_telegram = ApplicationBuilder().token(TOKEN).build()
+    loop = asyncio.get_event_loop()
+    loop.create_task(app_telegram.initialize())
+    loop.create_task(app_telegram.start())
     logging.info("✅ Telegram bot created (ApplicationBuilder)")
     asyncio.run(app_telegram.initialize())
     logging.info("✅ Telegram Application initialized successfully")
@@ -435,7 +438,11 @@ def webhook():
         # 1. Сразу отвечаем Telegram (иначе будут retry)
         logging.info("⚡ Fast ACK to Telegram")
         # 2. Обрабатываем update асинхронно в фоновом таске
-        asyncio.get_event_loop().create_task(app_telegram.process_update(Update.de_json(data, app_telegram.bot)))
+        loop = asyncio.get_event_loop()
+        asyncio.run_coroutine_threadsafe(
+            app_telegram.process_update(Update.de_json(data, app_telegram.bot)),
+        loop
+        )
         return "ok", 200
     except Exception as e:
         logging.error(f"❌ Webhook processing error: {e}")
