@@ -191,6 +191,22 @@ try:
 except Exception as e:
     logging.error(f"❌ Telegram bot init error: {e}")
 
+
+# -------------------------------------------------
+# Helper: отправка длинных сообщений порциями ≤ 4000 символов
+# -------------------------------------------------
+async def send_long_message(update, text, parse_mode=None):
+    MAX = 4000
+    if len(text) <= MAX:
+        await update.message.reply_text(text, parse_mode=parse_mode)
+        return
+
+    # режем по 4000 символов
+    for i in range(0, len(text), MAX):
+        chunk = text[i:i + MAX]
+        await update.message.reply_text(chunk, parse_mode=parse_mode)
+
+
 # -----------------------------
 # Планировщик ежедневного репорта
 # -----------------------------
@@ -306,7 +322,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Асинхронно вызываем GPT
             analysis = generate_daily_report_with_gpt(sheet)
-            await update.message.reply_text(analysis, parse_mode="Markdown")
+            await send_long_message(update, analysis, parse_mode="Markdown")
 
         except Exception as e:
             error_text = f"❌ Ошибка при генерации отчёта:\n\n{str(e)}\n\n{traceback.format_exc()}"
