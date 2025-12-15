@@ -250,7 +250,7 @@ def schedule_daily_report():
         logging.error(f"❌ Ошибка при инициализации планировщика: {e}")
 
 # Запуск планировщика
-schedule_daily_report()
+#schedule_daily_report()
 
 # -----------------------------
 # Handlers
